@@ -1,8 +1,14 @@
 from __future__ import print_function, division
 import os
+import torch
+import pandas as pd
+from skimage import io, transform
+import numpy as np
+import matplotlib.pyplot as plt
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
 import matplotlib.pyplot as plt
 import glob
-from skimage import io, transform
 from sklearn.model_selection import train_test_split
 
 
@@ -24,7 +30,7 @@ def show_sample(sample):
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 
-class OSMDataset():
+class OSMDataset(Dataset):
     """Face Landmarks dataset."""
 
     def __init__(self, root_dir, transform=None):
@@ -38,7 +44,6 @@ class OSMDataset():
         self.root_dir = root_dir
         self.transform = transform
         self.files = 0 # initialize empty
-        self.ids = 0
 
     def __len__(self):
         return len(self.files)
@@ -56,51 +61,23 @@ class OSMDataset():
 
     def findallimages(self):
         subfolders = [f.path for f in os.scandir(self.root_dir) if f.is_dir()]
-        subfolders_names = [f.name for f in os.scandir(self.root_dir) if f.is_dir()]
         images = []
         labels =[]
-        ids =[]
-
-        for counter, folder in enumerate(subfolders):
+        for folder in subfolders:
             images += glob.glob(folder + "/*image.png")
             labels += glob.glob(folder + "/*labels.png")
-            for i in range(len(glob.glob(folder + "/*image.png"))):
-                ids.append(subfolders_names[counter])
-
         self.files = [i for i in zip(images, labels)]
-        self.ids =  ids
 
 
 
-
-    def divideOnTestandTrain(self, val_city_name, test_city_name):
-        ''' returns testing and training images, depending on training, validation and test sets '''
-        train_img, train_lbl, val_img, val_lbl, test_img, test_lbl = [], [], [], [], [], []
-        for i in range(len(self.files)):
-            sample = self[i]
-            city = self.ids[i]
-            img, lbl = sample['image'], sample['label']
-            if city == val_city_name:
-                val_img.append(img)
-                val_lbl.append(lbl)
-            elif city == test_city_name:
-                test_img.append(img)
-                test_lbl.append(lbl)
-            else:
-                train_img.append(img)
-                train_lbl.append(lbl)
-        return train_img, train_lbl, val_img, val_lbl, test_img, test_lbl
 
     # Let’s instantiate this class and iterate through the data samples. We will print the sizes of first 4 samples and show their landmarks.
 
-
-#tests
 face_dataset =OSMDataset(root_dir='D:/programming/datasets/CITY-OSM/')
 face_dataset.findallimages()
-for i in range(1):
+for i in range(3):
     sample = face_dataset[i]
     show_sample(sample)
     plt.show()
-train_img, train_lbl, val_img, val_lbl, test_img, test_lbl = face_dataset.divideOnTestandTrain('berlin', 'potsdam')
 
 
