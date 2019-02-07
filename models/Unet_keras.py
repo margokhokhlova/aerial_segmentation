@@ -9,16 +9,16 @@ from keras.layers import Input, Conv2D, concatenate, UpSampling2D, BatchNormaliz
 
 
 
-
 def buildUnet(t0_img, dm_img):
 
     '''initialize base and build a U net
-    t0_img - initial image RGB
-    dm_img - coresponding mask'''
+    t0_img - initial image RGB as a BATCH!
+    dm_img - coresponding mask as a BATCH'''
     base_pretrained_model = PTModel(input_shape = t0_img.shape[1:], include_top = False, weights = 'imagenet')
     base_pretrained_model.trainable = False
     base_pretrained_model.summary()
     '''Collect Interesting Layers for Model'''
+    # collect layers by size so we can make an encoder from them
     layer_size_dict = defaultdict(list)
     inputs = []
     for lay_idx, c_layer in enumerate(base_pretrained_model.layers):
@@ -31,7 +31,6 @@ def buildUnet(t0_img, dm_img):
     for k,v in layer_size_dict.items():
         print(k, [w.__class__.__name__ for w in v])
 
-    # time
     # take the last layer of each shape and make it into an output
     pretrained_encoder = Model(inputs=base_pretrained_model.get_input_at(0),
                                outputs=[v[-1].get_output_at(0) for k, v in layer_size_dict.items()])
@@ -67,7 +66,8 @@ def buildUnet(t0_img, dm_img):
     final_output = Conv2D(dm_img.shape[-1], kernel_size=(1, 1), padding='same', activation='sigmoid')(last_layer)
     crop_size = 20
     final_output = Cropping2D((crop_size, crop_size))(final_output)
-    final_output = ZeroPadding2D((crop_size, crop_size))(final_output)
+    final_output = ZeroPadding2D((crop_size, crop_size))(final_output) #why are we cropping?
     unet_model = Model(inputs=[in_t0],
                        outputs=[final_output])
     unet_model.summary()
+    return unet_model

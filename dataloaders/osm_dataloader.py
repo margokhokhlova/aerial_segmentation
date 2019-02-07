@@ -1,83 +1,85 @@
 from __future__ import print_function, division
-import os
+
 import torch
-import pandas as pd
-from skimage import io, transform
-import numpy as np
-import matplotlib.pyplot as plt
+from skimage import io
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
-import matplotlib.pyplot as plt
-import glob
-from sklearn.model_selection import train_test_split
+from torchvision import transforms
 
-
+from dataloaders.dataset_helper import findallimagesosm
+import numpy as np
 # Ignore warnings
 import warnings
 warnings.filterwarnings("ignore")
 
-plt.ion()   # interactive mode
-
-
-def show_sample(sample):
-    """Show image with labels"""
-    img, lbl = sample['image'], sample['label']
-    fig = plt.figure()
-    fig.add_subplot(1,2,1)
-    plt.imshow(img)
-    fig.add_subplot(1,2,2)
-    plt.imshow(lbl)
-    plt.pause(0.001)  # pause a bit so that plots are updated
-
 
 class OSMDataset(Dataset):
-    """Face Landmarks dataset."""
+    '''Characterizes an OSM dataset for PyTorch
+    https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel '''
+    def __init__(self, list_IDs, labels, label_mask = 'house', transforms=None):
+        'Initialization'
+        self.labels = labels
+        self.list_IDs = list_IDs
+        self.transforms = transforms
+        self.label_mask = label_mask
 
-    def __init__(self, root_dir, transform=None):
-        """
-        Args:
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
-
-        self.root_dir = root_dir
-        self.transform = transform
-        self.files = 0 # initialize empty
 
     def __len__(self):
-        return len(self.files)
+        'Denotes the total number of samples'
+        return len(self.list_IDs)
 
-    def __getitem__(self, idx):
-        img_name, label_name = self.files[idx]
-        image = io.imread(img_name)
-        labels = io.imread(label_name)
-        sample = {'image': image, 'label': labels}
 
-        if self.transform:
-            sample = self.transform(sample)
+    def __getitem__(self, index):
+        'Generates one sample of data'
+        # Select sample
+        img_name = self.list_IDs[index]
+        label_name = self.labels[index]
+        # Load data and get label
+        X = io.imread(img_name)
+        y = io.imread(label_name)
+        if self.label_mask =='house':
+            y =np.expand_dims(y[:,:,2], axis=3) #take only the red channel of the image
 
-        return sample
 
-    def findallimages(self):
-        subfolders = [f.path for f in os.scandir(self.root_dir) if f.is_dir()]
-        images = []
-        labels =[]
-        for folder in subfolders:
-            images += glob.glob(folder + "/*image.png")
-            labels += glob.glob(folder + "/*labels.png")
-        self.files = [i for i in zip(images, labels)]
+        # if self.transform:
+        #     X = self.transform(X) # optional transform
 
+        return (X, y)
 
 
 
-    # Let’s instantiate this class and iterate through the data samples. We will print the sizes of first 4 samples and show their landmarks.
+if __name__ == '__main__':
+    # main file test
 
-face_dataset =OSMDataset(root_dir='D:/programming/datasets/CITY-OSM/')
-face_dataset.findallimages()
-for i in range(3):
-    sample = face_dataset[i]
-    show_sample(sample)
-    plt.show()
+    # CUDA for PyTorch
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+
+    # Datasets
+    partition, labels = findallimagesosm(folder = 'D:/programming/datasets/OSM_processed_margo/')
 
 
+    # Parameters
+    params = {'batch_size': 64,
+              'shuffle': True}
+    max_epochs = 100
+
+
+    # Generators
+    training_set = OSMDataset(partition['train'], labels['train'])
+    training_generator = DataLoader(dataset = training_set, **params)
+
+
+    (X, y) = training_set.__getitem__(0)
+
+    validation_set = OSMDataset(partition['validation'], labels['validation'])
+    validation_generator = DataLoader(dataset = validation_set, **params)
+
+
+    # Loop over epochs
+    for epoch in range(max_epochs):
+        # Training
+        for local_batch, local_labels in training_generator:
+            # Transfer to GPU
+            local_batch, local_labels = local_batch.to(device), local_labels.to(device)
+            print(local_batch.shape)
+            print(local_labels.shape)
