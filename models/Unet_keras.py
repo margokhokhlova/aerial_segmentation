@@ -64,9 +64,6 @@ def buildUnet(t0_img, dm_img):
             x = concatenate([cur_layer, x])
         last_layer = x
     final_output = Conv2D(dm_img.shape[-1], kernel_size=(1, 1), padding='same', activation='sigmoid')(last_layer)
-    crop_size = 20
-    final_output = Cropping2D((crop_size, crop_size))(final_output)
-    final_output = ZeroPadding2D((crop_size, crop_size))(final_output) #why are we cropping?
     unet_model = Model(inputs=[in_t0],
                        outputs=[final_output])
     unet_model.summary()

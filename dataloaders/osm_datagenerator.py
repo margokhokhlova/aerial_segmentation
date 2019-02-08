@@ -1,9 +1,8 @@
 from __future__ import print_function, division
 
-import torch
 from skimage import io
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from PIL import Image
+Image.LOAD_TRUNCATED_IMAGES = True
 
 from dataloaders.dataset_helper import findallimagesosm
 import numpy as np
@@ -13,6 +12,8 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import keras
+
+from keras.applications.vgg16 import preprocess_input
 
 class DataGeneratorOSM(keras.utils.Sequence):
     'Generates data for Keras'
@@ -60,10 +61,33 @@ class DataGeneratorOSM(keras.utils.Sequence):
             img_name = self.list_IDs[ID]
             label_name = self.labels[ID]
             # Load data and get label
-            Xs = io.imread(img_name)
-            ys = io.imread(label_name)
+
+            try:
+                # Relative Path
+                yp = Image.open(label_name)
+                Xp = Image.open(img_name)
+            except IOError:
+                print("image file is truncated :", img_name, label_name)
+                img_name = self.list_IDs[0]
+                label_name = self.labels[0] # if wrong - always take the first one
+                Xp = Image.open(img_name)
+                yp = Image.open(label_name)
+            except:
+                print("unexpected error with  the file :", img_name, label_name)
+                img_name = self.list_IDs[0]
+                label_name = self.labels[0]  # if wrong - always take the first one
+                Xp = Image.open(img_name)
+                yp = Image.open(label_name)
+
+            Xs = np.array(Xp)
+            ys = np.array(yp) # convert to numpy
+            yp.close()
+            Xp.close()
+
+            Xs = preprocess_input(Xs) # VGG processing of an image
+
             if self.label_mask == 'house':
-                ys = np.expand_dims(ys[:, :, 2], axis=3)  # take only the red channel of the image
+                ys = np.expand_dims(0.2*(ys[:, :, 2]/255.0) + (1.0 - ys[:, :, 2]/255.0), axis=3)  # take only the red channel of the image and weird deformation to get image between 0.2 and 1
 
             X[i,] = Xs
             # Store class

@@ -32,3 +32,19 @@ def show_sample(img, lbl):
     plt.imshow(lbl)
     plt.pause(0.001)  # pause a bit so that plots are updated
     plt.show()
+
+def show_sample_gt(img, lbl, gt):
+    """Show image with labels"""
+    fig = plt.figure()
+    fig.add_subplot(1,3,1)
+    plt.imshow(img)
+    plt.title("Image")
+    fig.add_subplot(1,3,2)
+    plt.imshow(lbl)
+    plt.title("Generated Label")
+    fig.add_subplot(1, 3, 3)
+    plt.imshow(gt)
+    plt.title("Ground Truth")
+    plt.pause(0.001)  # pause a bit so that plots are updated
+    plt.show()
+
