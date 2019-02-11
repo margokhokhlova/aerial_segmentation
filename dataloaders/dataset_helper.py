@@ -8,8 +8,8 @@ def findallimagesosm(folder):
     labels_ID = {}
 
     for counter, folder in enumerate(subfolders):
-        images = glob.glob(folder + "/*img.png")
-        labels = glob.glob(folder + "/*lbl.png")
+        images = sorted(glob.glob(folder + "/*img.png"))
+        labels = sorted(glob.glob(folder + "/*lbl.png"))
         images_ID[subfolders_names[counter]] = images
         labels_ID[subfolders_names[counter]] = labels
 

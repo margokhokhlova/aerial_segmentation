@@ -1,8 +1,7 @@
 from __future__ import print_function, division
 
-from skimage import io
+
 from PIL import Image
-Image.LOAD_TRUNCATED_IMAGES = True
 
 from dataloaders.dataset_helper import findallimagesosm
 import numpy as np
@@ -52,8 +51,8 @@ class DataGeneratorOSM(keras.utils.Sequence):
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
         # Initialization
-        X = np.empty((self.batch_size, *self.dim, self.n_channels_img))
-        y = np.empty((self.batch_size, *self.dim, self.n_channels_lbl))
+        X = np.empty((self.batch_size, *self.dim, self.n_channels_img), dtype = np.float32)
+        y = np.empty((self.batch_size, *self.dim, self.n_channels_lbl),dtype = np.float32)
 
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
@@ -84,10 +83,24 @@ class DataGeneratorOSM(keras.utils.Sequence):
             yp.close()
             Xp.close()
 
-            Xs = preprocess_input(Xs) # VGG processing of an image
+            try:
+                Xs = preprocess_input(Xs) # VGG processing of an image
+            except:
+                img_name = self.list_IDs[0]
+                label_name = self.labels[0]  # if wrong - always take the first one
+                Xp = Image.open(img_name)
+                yp = Image.open(label_name)
+                Xs = np.array(Xp)
+                ys = np.array(yp)  # convert to numpy
+                Xs = preprocess_input(Xs)  # VGG processing of an image
+                ys = np.float32(ys)
+                yp.close()
+                Xp.close()
+
 
             if self.label_mask == 'house':
-                ys = np.expand_dims(0.2*(ys[:, :, 2]/255.0) + (1.0 - ys[:, :, 2]/255.0), axis=3)  # take only the red channel of the image and weird deformation to get image between 0.2 and 1
+                ys = np.expand_dims(1.0-(ys[:, :, 2]/255.0), axis=3)  # take only the red channel of the image
+
 
             X[i,] = Xs
             # Store class
