@@ -23,8 +23,17 @@ def cutimage(image, size = (512,512), path = None, name_indx = '.png'):
             index +=1
     return cropped_images
 
-def show_sample(img, lbl):
+def show_sample(img, lbl,  undoprocessing = True):
     """Show image with labels"""
+    mean = [0.485, 0.456, 0.406]  # from KERAS Processing
+    std = [0.229, 0.224, 0.225]
+    if undoprocessing:
+        img[:, :,0] *= std[0]
+        img[:, :,1]  *= std[1]
+        img[:, :,2]  *= std[2]
+        img[:, :,0] += mean[0]
+        img[:, :,1] += mean[1]
+        img[:, :,2] += mean[2]
     fig = plt.figure()
     fig.add_subplot(1,2,1)
     plt.imshow(img)
@@ -33,8 +42,17 @@ def show_sample(img, lbl):
     plt.pause(0.001)  # pause a bit so that plots are updated
     plt.show()
 
-def show_sample_gt(img, lbl, gt):
+def show_sample_gt(img, lbl, gt, undoprocessing = False):
     """Show image with labels"""
+    mean = [0.485, 0.456, 0.406]  # from KERAS Processing
+    std = [0.229, 0.224, 0.225]
+    if undoprocessing:
+        img[:, :,0] *= std[0]
+        img[:, :,1]  *= std[1]
+        img[:, :,2]  *= std[2]
+        img[:, :,0] += mean[0]
+        img[:, :,1] += mean[1]
+        img[:, :,2] += mean[2]
     fig = plt.figure()
     fig.add_subplot(1,3,1)
     plt.imshow(img)

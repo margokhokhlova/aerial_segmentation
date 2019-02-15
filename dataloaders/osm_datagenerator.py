@@ -77,7 +77,8 @@ class DataGeneratorOSM(keras.utils.Sequence):
                 label_name = self.labels[0]  # if wrong - always take the first one
                 Xp = Image.open(img_name)
                 yp = Image.open(label_name)
-
+            Xp = Xp.resize((self.dim[0], self.dim[0]), Image.ANTIALIAS)
+            yp = yp.resize((self.dim[0], self.dim[0]), Image.ANTIALIAS)
             Xs = np.array(Xp)
             ys = np.array(yp) # convert to numpy
             yp.close()
@@ -90,6 +91,8 @@ class DataGeneratorOSM(keras.utils.Sequence):
                 label_name = self.labels[0]  # if wrong - always take the first one
                 Xp = Image.open(img_name)
                 yp = Image.open(label_name)
+                Xp = Xp.resize((self.dim[0], self.dim[0]), Image.ANTIALIAS)
+                yp = yp.resize((self.dim[0], self.dim[0]), Image.ANTIALIAS)
                 Xs = np.array(Xp)
                 ys = np.array(yp)  # convert to numpy
                 Xs = preprocess_input(Xs)  # VGG processing of an image
