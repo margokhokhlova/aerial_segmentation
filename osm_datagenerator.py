@@ -69,7 +69,7 @@ class DataGeneratorOSM(keras.utils.Sequence):
         self.on_epoch_end()
         self.mask_coverage = coverage
         self.stratified_sampling = stratified_sampling
-        self.transform = Transform
+        self.Transform = Transform
         self.preprocess_input = Process_function
 
     def __len__(self):
@@ -132,7 +132,7 @@ class DataGeneratorOSM(keras.utils.Sequence):
             yp.close()
             Xp.close()
 
-            if self.transform:
+            if self.Transform:
                 try:
                     Xs = self.preprocess_input(Xs) # VGG processing of an image
                 except:

@@ -5,14 +5,14 @@ import keras.backend as K
 from keras.optimizers import Adam
 from keras.losses import binary_crossentropy
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping, ReduceLROnPlateau
-
+import csv
 
 from dataloaders.osm_dataloader import OSMDataset
 from dataloaders.osm_datagenerator import DataGeneratorOSM
 from dataloaders.dataset_helper import findallimagesosm
 
 from models.Unet_keras import buildUnet
-
+from dataloaders.img_helper import show_sample
 
 
 #functions for the loss
@@ -27,6 +27,8 @@ def true_positive_rate(y_true, y_pred):
 
 
 
+
+
 if __name__ == '__main__':
     # main file test
 
@@ -38,23 +40,28 @@ if __name__ == '__main__':
     partition, labels = findallimagesosm(folder = 'D:/programming/datasets/OSM_processed_margo/')
 
     # Parameters
-    params = {'dim': (512, 512),
-              'batch_size': 2,
+    params = {'dim': (128, 128),
+              'batch_size': 12,
               'n_channels_img':3,
               'n_channel_mask':1,
               'shuffle': True}
-    max_epochs = 100
-
 
     # Generators
-    training_set = OSMDataset(partition['train'], labels['train'],  label_mask = 'house')
 
-    training_generator = DataGeneratorOSM(partition['train'], labels['train'], **params)
+    masks_coverage = {}
+    file_name_coverage = 'D:/programming/datasets/OSM_processed_margo/train/train.csv'
+    with open(file_name_coverage) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            masks_coverage[row['ID']] = row['val']
+
+    training_generator = DataGeneratorOSM(partition['train'], labels['train'], coverage=masks_coverage,
+                                          stratified_sampling = True,  **params)
     validation_generator = DataGeneratorOSM(partition['validation'], labels['validation'], **params)
 
-    (X, y) = training_set.__getitem__(0) # test to get an image, which will be used to initialize the Unet model
-    X = np.expand_dims(X, axis=0)
-    y = np.expand_dims(y, axis=0)
+
+    (X,y) = training_generator. __getitem__(0)
+    show_sample(X[0,:].astype(int), np.squeeze(y[0,:]))
 
     unet_model = buildUnet(X, y)
     unet_model.compile(optimizer=Adam(1e-3, decay=1e-6),
@@ -63,20 +70,27 @@ if __name__ == '__main__':
 
     # train parameters
     loss_history = []
-    weight_path = "{}_weights.best.hdf5".format('vgg_unet')
+    weight_path = "modelssaved/{}_weights.best.hdf5".format('vgg_unet')
     checkpoint = ModelCheckpoint(weight_path, monitor='val_loss', verbose=1,
                                  save_best_only=True, mode='min', save_weights_only=True)
 
-    reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=10, verbose=1, mode='auto',
+    reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, verbose=1, mode='auto',
                                        epsilon=0.0001, cooldown=5, min_lr=0.0001)
     early = EarlyStopping(monitor="val_loss",
                           mode="min",
-                          patience=5)  # probably needs to be more patient, but kaggle time is limited
+                          patience=15)  # probably needs to be more patient, but kaggle time is limited
     callbacks_list = [checkpoint, early, reduceLROnPlat]
 
-
-    loss_history += [unet_model.fit_generator(generator=training_generator, steps_per_epoch=5,
+    loss_history += [unet_model.fit_generator(generator=training_generator, steps_per_epoch=2,
                                               epochs=2,
-                                              validation_data=validation_generator, validation_steps=3,
+                                              validation_data=validation_generator, validation_steps=300,
                                               use_multiprocessing=False,
                                               callbacks=callbacks_list)]
+
+
+    # test the data
+    testing_generator = DataGeneratorOSM(partition['test'], labels['test'], **params)
+    out_parms = unet_model.evaluate_generator(testing_generator, steps=10)
+    print('\n')
+    for k, v in zip(unet_model.metrics_names, out_parms):
+        print(k, '%2.2f' % v)
