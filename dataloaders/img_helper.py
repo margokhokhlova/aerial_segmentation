@@ -24,21 +24,27 @@ def cutimage(image, size = (512,512), path = None, name_indx = '.png'):
     return cropped_images
 
 def show_sample(img, lbl,  undoprocessing = True):
+    img = img.astype(np.uint8)
+
     """Show image with labels"""
     mean = [0.485, 0.456, 0.406]  # from KERAS Processing
     std = [0.229, 0.224, 0.225]
     if undoprocessing:
+        img = img.astype(np.float64)
         img[:, :,0] *= std[0]
         img[:, :,1]  *= std[1]
         img[:, :,2]  *= std[2]
         img[:, :,0] += mean[0]
         img[:, :,1] += mean[1]
         img[:, :,2] += mean[2]
+        img = (255*img).astype(np.int16)
     fig = plt.figure()
     fig.add_subplot(1,2,1)
+    plt.suptitle("Image")
     plt.imshow(img)
     fig.add_subplot(1,2,2)
     plt.imshow(lbl, cmap = 'bone')
+    plt.suptitle("Mask")
     plt.pause(0.001)  # pause a bit so that plots are updated
     plt.show()
 
@@ -46,13 +52,17 @@ def show_sample_gt(img, lbl, gt, undoprocessing = False):
     """Show image with labels"""
     mean = [0.485, 0.456, 0.406]  # from KERAS Processing
     std = [0.229, 0.224, 0.225]
+
     if undoprocessing:
-        img[:, :,0] *= std[0]
-        img[:, :,1]  *= std[1]
-        img[:, :,2]  *= std[2]
+        img = img.astype(np.float64)
+        img[:, :,0] /= 1/std[0]
+        img[:, :,1] /= 1/std[1]
+        img[:, :,2] /= 1/std[2]
         img[:, :,0] += mean[0]
         img[:, :,1] += mean[1]
         img[:, :,2] += mean[2]
+        img = img[:,:,::-1]
+        img = (255*img).astype(np.int16)
     fig = plt.figure()
     fig.add_subplot(1,3,1)
     plt.imshow(img)
