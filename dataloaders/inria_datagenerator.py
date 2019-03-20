@@ -69,7 +69,7 @@ class DataGeneratorOSM(keras.utils.Sequence):
         self.on_epoch_end()
         self.mask_coverage = coverage
         self.stratified_sampling = stratified_sampling
-        self.Transform = Transform
+        self.transform = Transform
         self.preprocess_input = Process_function
 
     def __len__(self):
@@ -86,6 +86,7 @@ class DataGeneratorOSM(keras.utils.Sequence):
         else:
             # Find list of IDs
             list_IDs_temp = [k for k in indexes]
+
         X, y = self.__data_generation(list_IDs_temp)
 
         return X, y
@@ -132,7 +133,7 @@ class DataGeneratorOSM(keras.utils.Sequence):
             yp.close()
             Xp.close()
 
-            if self.Transform:
+            if self.transform:
                 try:
                     Xs = self.preprocess_input(Xs) # VGG processing of an image
                 except:
@@ -179,7 +180,7 @@ if __name__ == '__main__':
     params = {'dim': (512, 512),
               'batch_size': 32,
               'n_channels_img':3, 'n_channel_mask':1,
-              'shuffle': True}
+              'shuffle': False}
 
 
     # Datasets
@@ -189,7 +190,5 @@ if __name__ == '__main__':
     training_generator = DataGeneratorOSM(partition['train'], labels['train'], **params)
     validation_generator = DataGeneratorOSM(partition['validation'], labels['validation'], **params)
 
-    X, y = training_generator
-    X1, y1 = validation_generator
-
-
+    for i in range(10):
+        X, y = training_generator.__getitem__(i)
